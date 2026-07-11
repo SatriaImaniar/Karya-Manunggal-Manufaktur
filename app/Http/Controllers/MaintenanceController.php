@@ -228,9 +228,16 @@ class MaintenanceController extends Controller
                 'start' => $schedule->scheduled_date->format('Y-m-d'),
                 'color' => $colors[$schedule->status] ?? '#64748b',
                 'extendedProps' => [
-                    'status' => $schedule->status,
-                    'priority' => $schedule->priority,
-                    'technician' => optional($schedule->assignedTechnician)->name ?? 'Belum ditugaskan',
+                    'status'           => $schedule->status,
+                    'priority'         => $schedule->priority,
+                    'technician'       => optional($schedule->assignedTechnician)->name ?? 'Belum ditugaskan',
+                    'completion_notes' => $schedule->completion_notes ?? '',
+                    'completed_at'     => $schedule->completed_at
+                                            ? $schedule->completed_at->format('d/m/Y H:i')
+                                            : '',
+                    'scheduled_date'   => $schedule->scheduled_date->format('d M Y'),
+                    'machine_name'     => $schedule->machine->name,
+                    'machine_code'     => $schedule->machine->code,
                 ],
             ];
         })->toArray();
@@ -302,6 +309,14 @@ class MaintenanceController extends Controller
 
     /**
      * Update status jadwal oleh teknisi.
+     *
+     * Alur saat status → completed:
+     *   1. Simpan completed_at dan completion_notes
+     *   2. Ambil nilai Interval PM (Tpm) dari history terkait (atau history terbaru mesin)
+     *   3. Konversi Tpm jam → hari: ceil(Tpm / operating_hours_per_day)
+     *      → Default operasi pabrik = 8 jam/hari jika tidak terdefinisi
+     *   4. Hitung tanggal berikutnya: completed_at + interval_hari
+     *   5. Buat otomatis jadwal baru (status pending) jika belum ada jadwal aktif
      */
     public function updateScheduleStatus(Request $request, MaintenanceSchedule $schedule)
     {
@@ -317,22 +332,97 @@ class MaintenanceController extends Controller
         $updateData = ['status' => $validated['status']];
 
         if ($validated['status'] === 'completed') {
-            $updateData['completed_at']       = now();
-            $updateData['completion_notes']   = $validated['completion_notes'];
+            $updateData['completed_at']     = now();
+            $updateData['completion_notes'] = $validated['completion_notes'] ?? null;
         }
 
         $schedule->update($updateData);
+
+        // ─── Auto-generate jadwal PM berikutnya ───────────────────────────────
+        // Spesifikasi TBM:
+        //   tpm_interval yang tersimpan di DB sudah dalam satuan HARI.
+        //   (Nilai = k × MTBF, sudah dikonversi ke hari oleh TbmCalculatorService)
+        //   Tidak perlu dibagi operating_hours_per_day.
+        //   next_date = completed_at + tpm_interval_hari
+        // ─────────────────────────────────────────────────────────────────────
+        $autoScheduleMessage = '';
+
+        if ($validated['status'] === 'completed') {
+            // 1. Muat relasi mesin
+            $schedule->load(['machine', 'history']);
+
+            // 2. Ambil nilai Tpm (HARI) — dari history jadwal ini,
+            //    atau fallback ke history terbaru mesin jika history_id kosong
+            $tpmDays = null;
+
+            if ($schedule->history && $schedule->history->tpm_interval) {
+                // Sumber utama: history yang menghasilkan jadwal ini
+                $tpmDays = (float) $schedule->history->tpm_interval;
+            } else {
+                // Fallback: ambil history terbaru mesin yang punya tpm_interval
+                $latestHistory = $schedule->machine
+                    ->maintenanceHistories()
+                    ->whereNotNull('tpm_interval')
+                    ->orderByDesc('period_end')
+                    ->first();
+
+                if ($latestHistory) {
+                    $tpmDays = (float) $latestHistory->tpm_interval;
+                }
+            }
+
+            // 3. tpm_interval sudah dalam HARI — langsung pakai sebagai interval
+            //    Fallback 30 hari jika tidak ada data Tpm sama sekali
+            if ($tpmDays && $tpmDays > 0) {
+                $daysInterval = (int) ceil($tpmDays);
+            } else {
+                $daysInterval = 30; // fallback standar
+            }
+
+            // 4. Tanggal jadwal berikutnya dihitung dari waktu selesai aktual
+            $completedAt = $schedule->fresh()->completed_at;
+            $nextDate    = $completedAt->copy()->addDays($daysInterval);
+
+            // 5. Cek apakah sudah ada jadwal aktif (pending/in_progress) untuk mesin ini
+            //    agar tidak terjadi duplikasi jadwal
+            $alreadyExists = MaintenanceSchedule::where('machine_id', $schedule->machine_id)
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->where('scheduled_date', '>=', now()->toDateString())
+                ->exists();
+
+            if (!$alreadyExists) {
+                // Bersihkan suffix [Auto-Rekur] lama agar tidak menumpuk
+                $baseDesc = preg_replace('/\s*\[Auto-Rekur\]/', '', $schedule->description ?? '');
+
+                MaintenanceSchedule::create([
+                    'machine_id'     => $schedule->machine_id,
+                    'history_id'     => $schedule->history_id,
+                    'scheduled_date' => $nextDate,
+                    'priority'       => $schedule->priority,
+                    'status'         => 'pending',
+                    'description'    => trim($baseDesc) . ' [Auto-Rekur]',
+                ]);
+
+                $autoScheduleMessage = sprintf(
+                    ' Jadwal PM berikutnya otomatis dibuat untuk tanggal %s (Interval Tpm: %s hari).',
+                    $nextDate->format('d/m/Y'),
+                    $tpmDays ? number_format($tpmDays, 2) : $daysInterval
+                );
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         $statusLabel = $validated['status'] === 'completed' ? 'Selesai' : 'Dalam Pengerjaan';
 
         return redirect()
             ->route('teknisi.schedules')
-            ->with('success', "Status jadwal berhasil diubah ke: {$statusLabel}.");
+            ->with('success', "Status jadwal berhasil diubah ke: {$statusLabel}.{$autoScheduleMessage}");
     }
 
     // =========================================================================
     // ADMIN: REKAP & EXPORT DATA
     // =========================================================================
+
 
     /**
      * Tampilkan halaman rekap data lengkap.

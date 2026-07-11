@@ -71,47 +71,6 @@
                                             data-bs-target="#completeModal{{ $schedule->id }}">
                                         <i class="bi bi-check-lg me-1"></i>Selesai
                                     </button>
-
-                                    {{-- Complete Modal --}}
-                                    <div class="modal fade" id="completeModal{{ $schedule->id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form action="{{ route('teknisi.schedules.update-status', $schedule) }}"
-                                                      method="POST">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="hidden" name="status" value="completed">
-
-                                                    <div class="modal-header">
-                                                        <h6 class="modal-title fw-bold">
-                                                            <i class="bi bi-check-circle me-2"></i>Konfirmasi Selesai
-                                                        </h6>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <p class="mb-3">
-                                                            Maintenance untuk <strong>{{ $schedule->machine->name }}</strong>
-                                                            ({{ $schedule->machine->code }})
-                                                        </p>
-                                                        <div class="mb-3">
-                                                            <label for="completion_notes" class="form-label fw-semibold">
-                                                                Catatan Penyelesaian
-                                                            </label>
-                                                            <textarea class="form-control" name="completion_notes"
-                                                                      id="completion_notes" rows="3"
-                                                                      placeholder="Tuliskan catatan pekerjaan yang sudah dilakukan..."></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="submit" class="btn btn-success">
-                                                            <i class="bi bi-check-lg me-1"></i>Tandai Selesai
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                 @elseif($schedule->status === 'completed')
                                     <span class="text-success" style="font-size:.85rem">
                                         <i class="bi bi-check-circle-fill"></i>
@@ -142,4 +101,74 @@
 <div class="mt-3 d-flex justify-content-center">
     {{ $schedules->links() }}
 </div>
+
+{{-- ======================================================
+     SEMUA MODAL DIPINDAHKAN KE SINI (di luar tabel)
+     Alasan: Modal di dalam <td>/<tbody> dapat menyebabkan
+     stacking context CSS tabel memblokir interaksi input.
+     ====================================================== --}}
+@foreach($schedules as $schedule)
+    @if($schedule->status === 'in_progress')
+        <div class="modal fade" id="completeModal{{ $schedule->id }}" tabindex="-1"
+             aria-labelledby="completeModalLabel{{ $schedule->id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form action="{{ route('teknisi.schedules.update-status', $schedule) }}"
+                          method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status" value="completed">
+
+                        <div class="modal-header">
+                            <h6 class="modal-title fw-bold" id="completeModalLabel{{ $schedule->id }}">
+                                <i class="bi bi-check-circle me-2 text-success"></i>Konfirmasi Selesai
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-3">
+                                Maintenance untuk <strong>{{ $schedule->machine->name }}</strong>
+                                ({{ $schedule->machine->code }})
+                            </p>
+                            <div class="mb-3">
+                                <label for="completion_notes_{{ $schedule->id }}" class="form-label fw-semibold">
+                                    Catatan Penyelesaian
+                                </label>
+                                {{-- ID dibuat unik per jadwal agar tidak ada duplikasi ID di DOM --}}
+                                <textarea class="form-control"
+                                          name="completion_notes"
+                                          id="completion_notes_{{ $schedule->id }}"
+                                          rows="4"
+                                          placeholder="Tuliskan catatan pekerjaan yang sudah dilakukan..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg me-1"></i>Tandai Selesai
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+@endforeach
+
 @endsection
+
+@push('scripts')
+<script>
+    // Auto-focus textarea setiap kali modal ditampilkan
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[id^="completeModal"]').forEach(function (modalEl) {
+            modalEl.addEventListener('shown.bs.modal', function () {
+                var textarea = modalEl.querySelector('textarea[name="completion_notes"]');
+                if (textarea) {
+                    textarea.focus();
+                }
+            });
+        });
+    });
+</script>
+@endpush

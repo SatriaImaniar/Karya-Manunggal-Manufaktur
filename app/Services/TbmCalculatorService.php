@@ -34,7 +34,7 @@ use Carbon\Carbon;
  *     MTBF = 4225.5/10 = 422.55 jam
  *     MTTR = 27/10     = 2.70 jam
  *     Avail = (422.55/(422.55+2.70))×100 = 99.36%
- *     Tpm  = 0.075 × 422.55              = 31.69 ≈ 31 jam ✓
+ *     Tpm  = 0.075 × 422.55              = 31.69 ≈ 31 Hari ✓
  */
 class TbmCalculatorService
 {
@@ -137,13 +137,15 @@ class TbmCalculatorService
      *
      * Rumus: Tpm = k × MTBF
      *
-     * Hasilnya dalam jam — gunakan calculateNextScheduleDate() untuk
-     * mengkonversi ke tanggal kalender.
+     * Catatan satuan:
+     *   Hasil perhitungan ini digunakan langsung sebagai interval dalam HARI
+     *   untuk keperluan penjadwalan maintenance berikutnya.
+     *   Contoh: Tpm = 31.69 → jadwal maintenance dibuat 32 hari kemudian.
      *
-     * @param float $mtbf          Nilai MTBF dalam jam
+     * @param float $mtbf          Nilai MTBF
      * @param float $safetyFactor  Safety factor k (default 0.075)
      *
-     * @return float Interval Tpm dalam jam, dibulatkan 2 desimal
+     * @return float Interval Tpm (digunakan sebagai hari), dibulatkan 2 desimal
      */
     public function calculateTpmInterval(float $mtbf, float $safetyFactor = self::SAFETY_FACTOR): float
     {
@@ -153,27 +155,24 @@ class TbmCalculatorService
     /**
      * Hitung tanggal jadwal maintenance berikutnya.
      *
-     * Mengkonversi Tpm interval (jam) → hari kalender berdasarkan
-     * jam operasi per hari mesin yang bersangkutan.
-     *
-     * Rumus: hari = ceil(Tpm / jam_operasi_per_hari)
+     * Menggunakan nilai Tpm langsung sebagai jumlah hari.
+     * (tpm_interval = k × MTBF, digunakan sebagai interval hari)
      *
      * Contoh:
-     *   Tpm = 31 jam, operasi 11.58 jam/hari → ceil(31/11.58) = 3 hari
-     *   Tpm = 31 jam, operasi 24 jam/hari    → ceil(31/24)    = 2 hari
+     *   Tpm = 31.69 → ceil(31.69) = 32 hari dari period_end
      *
-     * @param float  $tpmIntervalHours      Interval Tpm dalam jam
-     * @param Carbon $fromDate              Tanggal referensi (akhir periode)
-     * @param float  $operatingHoursPerDay  Jam operasi mesin per hari
+     * @param float  $tpmIntervalDays  Interval Tpm (dalam hari)
+     * @param Carbon $fromDate         Tanggal referensi (akhir periode)
+     * @param float  $operatingHoursPerDay  Tidak digunakan (deprecated, tetap ada untuk backward compat)
      *
      * @return Carbon Tanggal maintenance berikutnya
      */
     public function calculateNextScheduleDate(
-        float $tpmIntervalHours,
+        float $tpmIntervalDays,
         Carbon $fromDate,
         float $operatingHoursPerDay = 24.0
     ): Carbon {
-        $days = (int) ceil($tpmIntervalHours / $operatingHoursPerDay);
+        $days = (int) ceil($tpmIntervalDays);
 
         return $fromDate->copy()->addDays($days);
     }
