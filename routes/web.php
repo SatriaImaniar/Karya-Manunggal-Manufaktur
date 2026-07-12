@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\JenisKerusakanController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\UserController;
@@ -47,6 +48,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->name('maintenance.history');
     Route::post('/maintenance/history', [MaintenanceController::class, 'storeHistory'])
         ->name('maintenance.history.store');
+    Route::delete('/maintenance/history/{history}', [MaintenanceController::class, 'destroyHistory'])
+        ->name('maintenance.history.destroy');
     Route::get('/maintenance/calculation/{machine}', [MaintenanceController::class, 'showCalculation'])
         ->name('maintenance.calculation');
 
@@ -63,6 +66,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->name('report.export');
     Route::get('/machines/{machine}/summary', [MaintenanceController::class, 'machineSummary'])
         ->name('machines.summary');
+
+    // Master Data: Jenis Kerusakan
+    Route::resource('jenis-kerusakan', JenisKerusakanController::class)
+        ->except(['create', 'edit', 'show']);
 });
 
 // =========================================================================

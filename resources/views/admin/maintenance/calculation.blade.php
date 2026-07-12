@@ -93,7 +93,7 @@
                 <div class="p-3 rounded-3 text-center text-white" style="background: var(--gradient-success)">
                     <div style="font-size:.7rem;font-weight:600;opacity:.8">Tpm = k × MTBF</div>
                     <div class="fw-bold fs-3">{{ $history->tpm_interval }}</div>
-                    <div style="font-size:.75rem;opacity:.8">jam interval PM</div>
+                    <div style="font-size:.75rem;opacity:.8">hari interval PM</div>
                     <div class="mt-1" style="font-size:.7rem;opacity:.6">
                         0.7 × {{ $history->mtbf }} = {{ $history->tpm_interval }}
                     </div>

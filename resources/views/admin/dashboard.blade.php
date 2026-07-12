@@ -137,7 +137,7 @@
                             <div class="flex-grow-1">
                                 <div class="fw-semibold" style="font-size:.85rem">{{ $history->machine->name }}</div>
                                 <div class="text-muted" style="font-size:.7rem">
-                                    MTBF: {{ $history->mtbf }}h &middot; MTTR: {{ $history->mttr }}h &middot; Tpm: {{ $history->tpm_interval }}h
+                                    MTBF: {{ $history->mtbf }} hari &middot; MTTR: {{ $history->mttr }} jam &middot; Tpm: {{ $history->tpm_interval }} hari
                                 </div>
                             </div>
                             <a href="{{ route('admin.maintenance.calculation', $history->machine) }}"

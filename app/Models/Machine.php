@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\JenisKerusakan;
 
 class Machine extends Model
 {
@@ -53,6 +54,14 @@ class Machine extends Model
     public function maintenanceSchedules(): HasMany
     {
         return $this->hasMany(MaintenanceSchedule::class);
+    }
+
+    /**
+     * Semua jenis kerusakan yang terkait dengan mesin ini.
+     */
+    public function jenisKerusakans(): HasMany
+    {
+        return $this->hasMany(JenisKerusakan::class);
     }
 
     // =========================================================================

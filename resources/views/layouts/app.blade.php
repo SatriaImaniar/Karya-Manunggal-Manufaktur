@@ -373,6 +373,10 @@
                     class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                     <i class="bi bi-people"></i> Kelola Teknisi
                 </a>
+                <a href="{{ route('admin.jenis-kerusakan.index') }}"
+                    class="sidebar-link {{ request()->routeIs('admin.jenis-kerusakan.*') ? 'active' : '' }}">
+                    <i class="bi bi-exclamation-triangle"></i> Jenis Kerusakan
+                </a>
 
                 <div class="sidebar-heading mt-3">Maintenance</div>
                 <a href="{{ route('admin.maintenance.history') }}"

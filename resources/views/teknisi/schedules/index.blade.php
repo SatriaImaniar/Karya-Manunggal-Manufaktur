@@ -26,6 +26,31 @@
                             <td>
                                 <div class="fw-semibold">{{ $schedule->machine->name }}</div>
                                 <div class="text-muted" style="font-size:.75rem">{{ $schedule->machine->code }}</div>
+                                {{-- Task 3: Badge Jenis Kerusakan --}}
+                                @php
+                                    $jkTampil = collect();
+                                    if ($schedule->history && $schedule->history->jenisKerusakan)
+                                        $jkTampil->push($schedule->history->jenisKerusakan);
+                                    elseif ($schedule->machine->jenisKerusakans->isNotEmpty())
+                                        $jkTampil = $schedule->machine->jenisKerusakans->take(2);
+                                @endphp
+                                @if($jkTampil->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @foreach($jkTampil as $jk)
+                                            <span class="badge rounded-pill"
+                                                style="font-size:.6rem;background:#fee2e2;color:#991b1b;border:1px solid #fecaca"
+                                                title="{{ $jk->deskripsi ?? '' }}">
+                                                <i class="bi bi-wrench-adjustable me-1"></i>{{ $jk->nama_kerusakan }}
+                                            </span>
+                                        @endforeach
+                                        @if($schedule->machine->jenisKerusakans->count() > 2 && $jkTampil->count() === 2)
+                                            <span class="badge rounded-pill"
+                                                style="font-size:.6rem;background:#e2e8f0;color:#475569">
+                                                +{{ $schedule->machine->jenisKerusakans->count() - 2 }} lagi
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <span class="fw-semibold">{{ $schedule->scheduled_date->format('d M Y') }}</span>
@@ -49,8 +74,21 @@
                                     {{ ucfirst(str_replace('_', ' ', $schedule->status)) }}
                                 </span>
                             </td>
-                            <td style="max-width:200px">
-                                <span style="font-size:.85rem">{{ Str::limit($schedule->description, 60) }}</span>
+                            {{-- Task 4: Deskripsi dipotong + tombol Baca Selengkapnya --}}
+                            <td style="max-width:180px">
+                                <span style="font-size:.82rem">{{ Str::limit($schedule->description, 50) }}</span>
+                                @if(strlen($schedule->description ?? '') > 50)
+                                    <br>
+                                    <button type="button"
+                                        class="btn btn-link btn-sm p-0 text-primary"
+                                        style="font-size:.75rem"
+                                        onclick="showDescription(
+                                            '{{ addslashes($schedule->machine->name) }}',
+                                            {{ json_encode($schedule->description) }}
+                                        )">
+                                        <i class="bi bi-eye me-1"></i>Baca Selengkapnya...
+                                    </button>
+                                @endif
                             </td>
                             <td class="text-center">
                                 @if($schedule->status === 'pending')
@@ -155,6 +193,34 @@
     @endif
 @endforeach
 
+{{-- ======================================================
+     MODAL BACA SELENGKAPNYA (Task 4)
+     Satu modal tunggal, diisi dinamis via JS saat tombol
+     "Baca Selengkapnya" diklik oleh teknisi.
+     ====================================================== --}}
+<div class="modal fade" id="descriptionModal" tabindex="-1"
+     aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="descriptionModalLabel">
+                    <i class="bi bi-file-text me-2 text-primary"></i>
+                    <span id="desc-modal-machine">Deskripsi Jadwal</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;font-size:.9rem;line-height:1.7">
+                    <p class="mb-0 text-secondary" id="desc-modal-content"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -170,5 +236,19 @@
             });
         });
     });
+
+    /**
+     * Task 4 — Tampilkan deskripsi lengkap di modal.
+     * Dipanggil inline dari tombol "Baca Selengkapnya" di tiap baris tabel.
+     *
+     * @param {string} machineName  Nama mesin untuk judul modal
+     * @param {string} description  Teks deskripsi lengkap
+     */
+    function showDescription(machineName, description) {
+        document.getElementById('desc-modal-machine').textContent = machineName;
+        document.getElementById('desc-modal-content').textContent = description;
+        var modal = new bootstrap.Modal(document.getElementById('descriptionModal'));
+        modal.show();
+    }
 </script>
 @endpush

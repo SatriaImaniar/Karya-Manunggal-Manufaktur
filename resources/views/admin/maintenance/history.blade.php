@@ -36,14 +36,18 @@
                                     Total Waktu Operasi (T) <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" min="0.01"
+                                    <input type="number" step="any" min="0.01"
                                         class="form-control @error('waktu_operasi_jam') is-invalid @enderror"
                                         id="waktu_operasi_jam" name="waktu_operasi_jam"
-                                        value="{{ old('waktu_operasi_jam') }}" placeholder="Contoh: 2400" required>
+                                        value="{{ old('waktu_operasi_jam') }}" placeholder="Contoh: 4225.5" required>
                                     <span class="input-group-text">jam</span>
                                     @error('waktu_operasi_jam')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                <small class="text-muted">Total jam mesin beroperasi selama periode pengamatan</small>
+                                <small class="text-muted">
+                                    Total jam mesin beroperasi selama periode pengamatan.
+                                    <strong>Gunakan titik (.) sebagai pemisah desimal.</strong>
+                                    Contoh: 4225.5 jam
+                                </small>
                             </div>
 
                             <div class="col-md-6">
@@ -63,14 +67,14 @@
                                     Total Waktu Perbaikan (Tr) <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" min="0"
+                                    <input type="number" step="any" min="0"
                                         class="form-control @error('waktu_perbaikan_jam') is-invalid @enderror"
                                         id="waktu_perbaikan_jam" name="waktu_perbaikan_jam"
-                                        value="{{ old('waktu_perbaikan_jam') }}" placeholder="Contoh: 48" required>
+                                        value="{{ old('waktu_perbaikan_jam') }}" placeholder="Contoh: 27" required>
                                     <span class="input-group-text">jam</span>
                                     @error('waktu_perbaikan_jam')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                <small class="text-muted">Total jam perbaikan</small>
+                                <small class="text-muted">Total jam perbaikan. Gunakan titik (.) untuk desimal.</small>
                             </div>
                         </div>
 
@@ -142,8 +146,8 @@
                                     <th class="text-end">Tr (jam)</th>
                                     <th class="text-end">MTBF</th>
                                     <th class="text-end">MTTR</th>
-                                    <th class="text-end">Interval Pm</th>
-                                    <th>Detail</th>
+                                    <th class="text-end">Interval PM (Hari)</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -163,11 +167,23 @@
                                         <td class="text-end fw-bold text-primary">{{ $history->mtbf }}</td>
                                         <td class="text-end fw-bold text-warning">{{ $history->mttr }}</td>
                                         <td class="text-end fw-bold text-success">{{ $history->tpm_interval }}</td>
-                                        <td>
+                                        <td class="text-center">
+                                            {{-- Tombol Detail --}}
                                             <a href="{{ route('admin.maintenance.calculation', $history->machine) }}"
                                                 class="btn btn-sm btn-outline-primary" title="Lihat Detail">
                                                 <i class="bi bi-eye"></i>
                                             </a>
+                                            {{-- Tombol Hapus --}}
+                                            <form action="{{ route('admin.maintenance.history.destroy', $history) }}"
+                                                method="POST" class="d-inline"
+                                                onsubmit="return confirm('Hapus data historis mesin {{ addslashes($history->machine->name) }} periode {{ $history->period_start->format('d/m/Y') }}? Semua jadwal Pending yang terkait akan ikut terhapus.')"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 @empty

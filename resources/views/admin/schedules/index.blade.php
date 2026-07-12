@@ -34,6 +34,31 @@
                                 <div>
                                     <div class="fw-bold" style="font-size:.9rem">{{ $schedule->machine->name }}</div>
                                     <div class="text-muted" style="font-size:.75rem">{{ $schedule->machine->code }}</div>
+                                    {{-- Jenis Kerusakan: dari history spesifik, atau fallback ke master mesin --}}
+                                    @php
+                                        $jenisKerusakanTampil = collect();
+                                        if ($schedule->history && $schedule->history->jenisKerusakan)
+                                            $jenisKerusakanTampil->push($schedule->history->jenisKerusakan);
+                                        elseif ($schedule->machine->jenisKerusakans->isNotEmpty())
+                                            $jenisKerusakanTampil = $schedule->machine->jenisKerusakans->take(3);
+                                    @endphp
+                                    @if($jenisKerusakanTampil->isNotEmpty())
+                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                            @foreach($jenisKerusakanTampil as $jk)
+                                                <span class="badge rounded-pill"
+                                                    style="font-size:.62rem;background:#fee2e2;color:#991b1b;border:1px solid #fecaca"
+                                                    title="{{ $jk->deskripsi ?? '' }}">
+                                                    <i class="bi bi-wrench-adjustable me-1"></i>{{ $jk->nama_kerusakan }}
+                                                </span>
+                                            @endforeach
+                                            @if($schedule->machine->jenisKerusakans->count() > 3 && $jenisKerusakanTampil->count() === 3)
+                                                <span class="badge rounded-pill"
+                                                    style="font-size:.62rem;background:#e2e8f0;color:#475569">
+                                                    +{{ $schedule->machine->jenisKerusakans->count() - 3 }} lagi
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="d-flex flex-column align-items-end gap-1">
                                     <span class="badge bg-{{ $schedule->status_badge }}" style="font-size:.7rem">

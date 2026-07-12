@@ -162,26 +162,77 @@ class MaintenanceController extends Controller
             'notes'                  => $validated['notes'] ?? null,
         ]);
 
-        // ─── Generate jadwal preventive maintenance otomatis ──────────────────
-        MaintenanceSchedule::create([
-            'machine_id'    => $machine->id,
-            'history_id'    => $history->id,
-            'scheduled_date' => $result['next_schedule_date'],
-            'priority'      => $this->determinePriority($result['mtbf']),
-            'status'        => 'pending',
-            'description'   => "Preventive Maintenance — {$machine->name} (TBM/Tpm = {$result['tpm_interval']} jam)",
-        ]);
+        // ─── Hapus jadwal Pending lama untuk mesin ini ────────────────────────
+        // Sesuai logika TBM: data historis baru → recalculate → jadwal lama
+        // yang belum dikerjakan (Pending) menjadi tidak relevan.
+        // CATATAN: Completed dan In Progress TIDAK dihapus (riwayat pekerjaan).
+        MaintenanceSchedule::where('machine_id', $machine->id)
+            ->where('status', 'pending')
+            ->delete();
+
+        // ─── Generate jadwal looping 1 tahun ke depan ────────────────────────
+        // Mulai dari next_schedule_date (period_end + tpm_interval),
+        // lalu terus tambah tpm_interval sampai batas 1 tahun dari period_end.
+        $intervalDays  = (int) ceil($result['tpm_interval']);
+        $batasAkhir    = Carbon::parse($validated['period_end'])->addYear();
+        $currentDate   = $result['next_schedule_date']->copy();
+        $priority      = $this->determinePriority($result['mtbf']);
+        $baseDesc      = "Preventive Maintenance — {$machine->name} | Tpm = {$result['tpm_interval']} hari | MTBF = {$result['mtbf']} jam";
+        $scheduleCount = 0;
+
+        while ($currentDate->lte($batasAkhir)) {
+            MaintenanceSchedule::create([
+                'machine_id'     => $machine->id,
+                'history_id'     => $history->id,
+                'scheduled_date' => $currentDate->toDateString(),
+                'priority'       => $priority,
+                'status'         => 'pending',
+                'description'    => $baseDesc,
+            ]);
+
+            $scheduleCount++;
+            $currentDate->addDays($intervalDays);
+        }
 
         return redirect()
             ->route('admin.maintenance.history')
             ->with('success', sprintf(
-                'Data berhasil disimpan. MTBF: %s jam | MTTR: %s jam | Availability: %s%% | Tpm: %s jam. Jadwal dibuat untuk %s.',
+                'Data berhasil disimpan. MTBF: %s jam | MTTR: %s jam | Availability: %s%% | Interval PM: %s hari. '
+                . '%d jadwal PM dibuat (looping setiap %d hari selama 1 tahun ke depan).',
                 $result['mtbf'],
                 $result['mttr'],
                 $result['availability'],
                 $result['tpm_interval'],
-                $result['next_schedule_date']->format('d/m/Y')
+                $scheduleCount,
+                $intervalDays
             ));
+    }
+
+    /**
+     * Hapus satu record data historis kerusakan.
+     *
+     * Logika penghapusan:
+     *   1. Hapus semua jadwal PENDING yang berasal dari histori ini (history_id match)
+     *   2. Hapus juga jadwal PENDING lain untuk mesin ini yang mungkin orphan
+     *   3. Jangan hapus jadwal Completed / In Progress (riwayat pekerjaan teknisi)
+     *   4. Hapus record historis itu sendiri
+     */
+    public function destroyHistory(MaintenanceHistory $history)
+    {
+        $machineName = $history->machine->name;
+        $periode     = $history->period_start->format('d/m/Y') . ' – ' . $history->period_end->format('d/m/Y');
+
+        // Hapus jadwal Pending yang berasal dari histori ini
+        MaintenanceSchedule::where('history_id', $history->id)
+            ->where('status', 'pending')
+            ->delete();
+
+        // Hapus histori
+        $history->delete();
+
+        return redirect()
+            ->route('admin.maintenance.history')
+            ->with('success', "Data historis {$machineName} periode {$periode} berhasil dihapus beserta jadwal Pending terkait.");
     }
 
     /**
@@ -211,7 +262,11 @@ class MaintenanceController extends Controller
      */
     public function scheduleIndex()
     {
-        $schedules   = MaintenanceSchedule::with(['machine', 'assignedTechnician'])
+        $schedules   = MaintenanceSchedule::with([
+                'machine.jenisKerusakans',
+                'assignedTechnician',
+                'history.jenisKerusakan',
+            ])
             ->orderBy('scheduled_date')
             ->get();
 
@@ -299,7 +354,10 @@ class MaintenanceController extends Controller
      */
     public function teknisiSchedules()
     {
-        $schedules = MaintenanceSchedule::with(['machine', 'history'])
+        $schedules = MaintenanceSchedule::with([
+                'machine.jenisKerusakans',
+                'history.jenisKerusakan',
+            ])
             ->where('assigned_to', auth()->id())
             ->orderBy('scheduled_date')
             ->paginate(10);
