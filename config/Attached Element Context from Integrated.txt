@@ -1,0 +1,82 @@
+Attached Element Context from Integrated Browser
+
+Element: th.text-end
+
+URL: http://127.0.0.1:8000/admin/maintenance/history
+
+HTML Path: div.main-content > div.content-area > div.row.g-4 > div.col-lg-7.animate-in > div.card-custom > div.card-body-custom.p-0 > div.table-responsive > table.table.table-custom.mb-0 > thead > tr > th.text-end
+
+Outer HTML:
+```html
+<th class="text-end">Tr (jam)</th>
+```
+
+Dimensions:
+- top: 83px
+- left: 1038px
+- width: 71px
+- height: 61px
+
+CSS:
+```css
+*, ::after, ::before { box-sizing:border-box }
+* { font-family: 'Inter', sans-serif; }
+th { text-align:inherit;text-align:-webkit-match-parent }
+tbody, td, tfoot, th, thead, tr { border-color:inherit;border-style:solid;border-width:0 }
+.text-end { text-align:right!important }
+.table>:not(caption)>*>* { padding:.5rem .5rem;color:var(--bs-table-color-state,var(--bs-table-color-type,var(--bs-table-color)));background-color:var(--bs-table-bg);border-bottom-width:var(--bs-border-width);box-shadow:inset 0 0 0 9999px var(--bs-table-bg-state,var(--bs-table-bg-type,var(--bs-table-accent-bg))) }
+.table-custom thead th { background: #f8fafc;
+            font-size: .75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0;
+            padding: .75rem 1rem; }
+
+/* Inherited */
+* { font-family: 'Inter', sans-serif }
+body { font-family:var(--bs-body-font-family); font-size:var(--bs-body-font-size); font-weight:var(--bs-body-font-weight); line-height:var(--bs-body-line-height); color:var(--bs-body-color); text-align:var(--bs-body-text-align) }
+
+/* Resolved values */
+padding: 12px 16px;
+border-width: 0px 0px 2px;
+border-style: solid;
+border-color: rgb(222, 226, 230) rgb(222, 226, 230) rgb(226, 232, 240);
+background-attachment: scroll;
+background-clip: border-box;
+background-color: rgb(248, 250, 252);
+background-image: none;
+background-origin: padding-box;
+background-position-x: 0%;
+background-position-y: 0%;
+background-repeat: repeat;
+background-size: auto;
+box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 9999px inset;
+box-sizing: border-box;
+color: rgb(100, 116, 139);
+display: table-cell;
+font-family: Inter, sans-serif;
+font-size: 12px;
+font-weight: 700;
+height: 61px;
+letter-spacing: 0.5px;
+line-height: 18px;
+text-align: right;
+text-indent: 0px /*UA*/;
+text-transform: uppercase;
+unicode-bidi: isolate /*UA*/;
+vertical-align: bottom /*UA*/;
+width: 70.6875px;
+
+/* CSS variables */
+--bs-body-font-weight: 400;
+--bs-table-accent-bg: transparent;
+--bs-body-line-height: 1.5;
+--bs-table-bg: #fff;
+--bs-border-width: 1px;
+--bs-body-font-size: 1rem;
+--bs-table-color: #000;
+--bs-body-font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans","Liberation Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+--bs-body-color: #212529;
+```

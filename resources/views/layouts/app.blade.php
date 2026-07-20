@@ -7,6 +7,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'PM Scheduling') - Preventive Maintenance</title>
 
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#1E3A8A">
+
+    {{-- Favicons --}}
+    <link rel="icon" type="image/png" href="{{ asset('zani.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('zani.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('zani.png') }}">
+
     {{-- Google Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -467,6 +476,18 @@
     {{-- Bootstrap 5 JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker berhasil didaftarkan!', reg))
+                    .catch(err => console.log('Service Worker gagal didaftarkan', err));
+            });
+        }
+    </script>
+
 </body>
 
 </html>
